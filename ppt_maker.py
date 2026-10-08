@@ -472,14 +472,14 @@ def normalize_slide(raw: Dict[str, Any]) -> SlideData:
 
     for item in raw.get("stats", []):
         if isinstance(item, dict):
-            data["stats"].append({
+            data.stats.append({
                 "number": clean_text(item.get("number")),
                 "label": clean_text(item.get("label")),
             })
 
     for item in raw.get("timeline", []):
         if isinstance(item, dict):
-            data["timeline"].append({
+            data.timeline.append({
                 "year": clean_text(item.get("year")),
                 "title": clean_text(item.get("title")),
                 "description": clean_text(item.get("description")),
@@ -2128,151 +2128,785 @@ def streamlit_app():
     import streamlit as st
 
     st.set_page_config(
-        page_title=APP_NAME,
-        page_icon="📊",
+        page_title="AI PPT Maker — AI Presentation Studio",
+        page_icon="✦",
         layout="wide",
+        initial_sidebar_state="collapsed",
     )
 
+    # Inject ultra-premium styling
     st.markdown(
         """
         <style>
-        .main-title {
-            font-size: 48px;
-            font-weight: 800;
-            letter-spacing: -2px;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        /* Reset & Root Variables */
+        :root {
+            --bg-base: #07080C;
+            --bg-surface: #0E1118;
+            --bg-surface-elevated: #141822;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(99, 102, 241, 0.35);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --accent-indigo: #6366F1;
+            --accent-cyan: #06B6D4;
+            --accent-violet: #8B5CF6;
         }
-        .subtitle {
-            color: #8b93a7;
+
+        /* Hide default Streamlit fluff */
+        #MainMenu, footer, header { visibility: hidden; }
+        .stDeployButton { display: none; }
+        div[data-testid="stDecoration"] { display: none; }
+        div[data-testid="stToolbar"] { display: none; }
+        
+        /* App Container & Background */
+        .stApp {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle 900px at 50% -120px, rgba(99, 102, 241, 0.12), transparent),
+                radial-gradient(circle 600px at 85% 300px, rgba(6, 182, 212, 0.05), transparent),
+                radial-gradient(circle 600px at 15% 400px, rgba(139, 92, 246, 0.05), transparent);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            letter-spacing: -0.01em;
+        }
+
+        .block-container {
+            padding-top: 1.25rem !important;
+            padding-bottom: 5rem !important;
+            max-width: 1240px !important;
+        }
+
+        /* Navigation Bar */
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            background: rgba(14, 17, 24, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            margin-bottom: 48px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .nav-title {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #FFFFFF;
+        }
+
+        .nav-badge {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 10px;
+            border-radius: 100px;
+            background: rgba(99, 102, 241, 0.12);
+            color: #A5B4FC;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #34D399;
+            box-shadow: 0 0 8px #34D399;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-btn {
+            font-size: 13px;
+            font-weight: 600;
+            color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 7px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.22);
+            color: #FFFFFF;
+        }
+
+        /* Hero Header Section */
+        .hero-header {
+            text-align: center;
+            max-width: 820px;
+            margin: 0 auto 36px auto;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #A5B4FC;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 6px 14px;
+            border-radius: 100px;
+            margin-bottom: 22px;
+        }
+
+        .hero-headline {
+            font-size: 52px;
+            line-height: 1.12;
+            font-weight: 800;
+            letter-spacing: -0.035em;
+            color: #FFFFFF;
+            margin: 0 0 18px 0;
+        }
+
+        .hero-headline .highlight {
+            background: linear-gradient(135deg, #FFFFFF 30%, #CBD5E1 70%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(99, 102, 241, 0.25);
+            font-style: normal;
+        }
+
+        .hero-subtext {
             font-size: 18px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        /* Creation Box Container */
+        .creation-container {
+            background: linear-gradient(180deg, rgba(17, 21, 30, 0.85) 0%, rgba(12, 15, 22, 0.95) 100%);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .creation-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20%;
+            right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+        }
+
+        /* Preset Chips */
+        .chips-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        /* Streamlit Text Area Styling */
+        div[data-testid="stTextArea"] textarea {
+            background: rgba(8, 10, 15, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 14px !important;
+            color: #FFFFFF !important;
+            font-size: 16px !important;
+            line-height: 1.5 !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            padding: 16px 18px !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        div[data-testid="stTextArea"] textarea:focus {
+            border-color: rgba(99, 102, 241, 0.6) !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        div[data-testid="stTextArea"] label {
+            color: var(--text-primary) !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            margin-bottom: 6px !important;
+        }
+
+        /* Streamlit Input / Select / Slider Controls */
+        div[data-testid="stSelectbox"] label,
+        div[data-testid="stSlider"] label,
+        div[data-testid="stTextInput"] label {
+            color: var(--text-secondary) !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+        }
+
+        div[data-testid="stSelectbox"] > div > div {
+            background: rgba(8, 10, 15, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 10px !important;
+            color: #FFFFFF !important;
+            font-size: 14px !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            background: rgba(8, 10, 15, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 10px !important;
+            color: #FFFFFF !important;
+            font-size: 14px !important;
+            padding: 8px 12px !important;
+        }
+
+        /* Checkbox styling */
+        div[data-testid="stCheckbox"] label {
+            color: var(--text-secondary) !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
+        }
+
+        /* Primary Generate Button */
+        div.stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #8B5CF6 100%) !important;
+            color: #FFFFFF !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 14px !important;
+            padding: 16px 28px !important;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            cursor: pointer !important;
+        }
+
+        div.stButton > button[kind="primary"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+        }
+
+        div.stButton > button[kind="primary"]:active {
+            transform: translateY(0px) !important;
+        }
+
+        /* Secondary & Download Buttons */
+        div.stDownloadButton > button {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+            color: #FFFFFF !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+            padding: 14px 24px !important;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        div.stDownloadButton > button:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5) !important;
+        }
+
+        /* Expander */
+        .streamlit-expanderHeader {
+            background: rgba(14, 17, 24, 0.6) !important;
+            border: 1px solid var(--border-subtle) !important;
+            border-radius: 10px !important;
+            color: var(--text-primary) !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+        }
+
+        /* Slide Preview Cards (3D Fan & Visuals) */
+        .preview-showcase {
+            background: rgba(11, 14, 20, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .preview-tag {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #38BDF8;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .slide-deck-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .slide-mockup {
+            background: #08090D;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-mockup:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 16px 35px -8px rgba(99, 102, 241, 0.25);
+        }
+
+        .slide-mockup-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+            line-height: 1.25;
+        }
+
+        .slide-mockup-body {
+            font-size: 10px;
+            color: #94A3B8;
+            line-height: 1.4;
+        }
+
+        .slide-mockup-badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #818CF8;
+            background: rgba(99, 102, 241, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            align-self: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .slide-mockup-kpi {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .kpi-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 4px 8px;
+            flex: 1;
+        }
+
+        .kpi-chip-val {
+            font-size: 12px;
+            font-weight: 800;
+            color: #38BDF8;
+        }
+
+        .kpi-chip-lbl {
+            font-size: 8px;
+            color: #64748B;
+        }
+
+        /* Section Story Cards */
+        .section-header-wrap {
+            text-align: center;
+            margin: 64px auto 32px auto;
+            max-width: 640px;
+        }
+
+        .section-eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #818CF8;
+            margin-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: #FFFFFF;
+            margin: 0 0 10px 0;
+        }
+
+        .section-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Workflow Step Grid */
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .workflow-card {
+            background: rgba(14, 17, 24, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .workflow-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .workflow-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6366F1;
+            margin-bottom: 10px;
+        }
+
+        .workflow-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 6px;
+        }
+
+        .workflow-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        /* Features Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 56px;
+        }
+
+        .feature-card {
+            background: linear-gradient(180deg, rgba(17, 21, 30, 0.7) 0%, rgba(11, 14, 20, 0.85) 100%);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(99, 102, 241, 0.35);
+        }
+
+        .feature-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .feature-heading {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+        }
+
+        .feature-body {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Status & Generation Live Feedback */
+        .generation-live-card {
+            background: rgba(14, 18, 26, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
+        }
+
+        .status-step-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .status-step-active {
+            color: #A5B4FC;
+            font-weight: 600;
+        }
+
+        .status-step-done {
+            color: #34D399;
+        }
+
+        /* Footer */
+        .footer-wrap {
+            border-top: 1px solid var(--border-subtle);
+            padding: 32px 0 16px 0;
+            margin-top: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .hero-headline { font-size: 38px; }
+            .workflow-grid { grid-template-columns: repeat(2, 1fr); }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .hero-headline { font-size: 30px; }
+            .workflow-grid { grid-template-columns: 1fr; }
+            .nav-container { flex-direction: column; gap: 12px; }
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
+    # Top Navigation Bar
     st.markdown(
-        '<div class="main-title">AI PowerPoint Maker</div>',
+        """
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="nav-logo-icon">✦</div>
+                <div class="nav-title">AI PPT Maker</div>
+                <div class="nav-badge"><span class="nav-badge-dot"></span> Studio 2.5</div>
+            </div>
+            <div class="nav-links">
+                <a href="#creation-studio" class="nav-link">Composer</a>
+                <a href="#features" class="nav-link">Capabilities</a>
+                <a href="#workflow" class="nav-link">Pipeline</a>
+                <a href="https://github.com/rishalck/ai-ppt-maker" target="_blank" class="nav-btn">GitHub ↗</a>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
+    # Hero Header
     st.markdown(
-        '<div class="subtitle">Gemini + Python-PPTX • Generate polished presentations with pictures</div>',
+        """
+        <div class="hero-header">
+            <div class="hero-eyebrow">
+                <span>✦</span> AI PRESENTATION STUDIO
+            </div>
+            <h1 class="hero-headline">
+                Turn an idea into a <br><span class="highlight">presentation</span> worth presenting.
+            </h1>
+            <p class="hero-subtext">
+                Describe your idea. Our AI builds the story, designs the slides, and exports the deck.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-    st.divider()
+    # Initialize prompt presets in session state if needed
+    if "prompt_input" not in st.session_state:
+        st.session_state.prompt_input = ""
 
-    left, right = st.columns([1.0, 1.6])
+    # Quick inspiration prompt chips
+    st.markdown('<div class="chips-label">Inspiration Presets</div>', unsafe_allow_html=True)
+    chip_col1, chip_col2, chip_col3, chip_col4 = st.columns(4)
+    with chip_col1:
+        if st.button("🧬 AI in Healthcare", use_container_width=True):
+            st.session_state.prompt_input = "Artificial Intelligence in Healthcare: Breakthroughs in Clinical Diagnostics and Drug Discovery"
+            st.rerun()
+    with chip_col2:
+        if st.button("🚀 Series A Pitch Deck", use_container_width=True):
+            st.session_state.prompt_input = "Next-Gen Developer Platform: Seed-to-Series A Pitch Deck covering Problem, Traction, and Market Opportunity"
+            st.rerun()
+    with chip_col3:
+        if st.button("⚡ Renewable Energy 2030", use_container_width=True):
+            st.session_state.prompt_input = "Global Renewable Energy Transition: Solar, Wind, and Next-Gen Grid Infrastructure by 2030"
+            st.rerun()
+    with chip_col4:
+        if st.button("📊 Q3 Growth Strategy", use_container_width=True):
+            st.session_state.prompt_input = "Q3 Enterprise SaaS Go-To-Market Strategy, Revenue Scaling, and Customer Retention"
+            st.rerun()
 
-    with left:
-        topic = st.text_area(
-            "What should the presentation be about?",
-            placeholder="Example: Artificial Intelligence in Healthcare",
-            height=130,
-        )
+    # The Creation Box (Centerpiece)
+    st.markdown('<div id="creation-studio" class="creation-container">', unsafe_allow_html=True)
+    
+    topic = st.text_area(
+        "What do you want to present?",
+        value=st.session_state.prompt_input,
+        placeholder="e.g., Create a 10-slide presentation about the future of autonomous vehicles, focusing on safety milestones, commercial fleets, and urban infrastructure...",
+        height=110,
+        label_visibility="visible",
+    )
 
-        slides = st.slider(
-            "Number of slides",
-            min_value=3,
-            max_value=30,
-            value=10,
-        )
-
+    # Compact Control Strip
+    c1, c2, c3, c4 = st.columns([1.2, 1.4, 1.4, 1.2])
+    with c1:
+        slides = st.slider("Slides", min_value=3, max_value=30, value=10)
+    with c2:
         audience = st.selectbox(
             "Audience",
             [
+                "Business executives",
                 "College students",
-                "School students",
-                "Business audience",
-                "Startup founders",
+                "Startup investors",
                 "Technical professionals",
+                "School students",
                 "General audience",
             ],
+            index=0,
         )
-
+    with c3:
         style = st.selectbox(
-            "Presentation style",
+            "Style",
             [
                 "Premium modern",
-                "Minimal",
-                "Corporate",
-                "Academic",
+                "Editorial minimal",
+                "Corporate bold",
                 "Startup pitch",
-                "Creative",
-                "Futuristic",
+                "Creative narrative",
+                "Academic rigor",
+                "Futuristic dark",
             ],
+            index=0,
         )
-
+    with c4:
         theme = st.selectbox(
             "Theme",
             list(THEMES.keys()),
             index=0,
         )
 
+    # Secondary Compact Options
+    opt_col1, opt_col2, opt_col3, opt_col4 = st.columns([1.2, 1.1, 1.1, 1.2])
+    with opt_col1:
         language = st.selectbox(
             "Language",
-            [
-                "English",
-                "Malayalam",
-                "Hindi",
-                "Tamil",
-                "Kannada",
-            ],
+            ["English", "Malayalam", "Hindi", "Tamil", "Kannada", "Spanish", "German", "French"],
+            index=0,
         )
+    with opt_col2:
+        include_images = st.checkbox("Include Pictures", value=True)
+    with opt_col3:
+        include_charts = st.checkbox("Include Charts", value=True)
+    with opt_col4:
+        include_notes = st.checkbox("Speaker Notes", value=True)
 
-        include_images = st.checkbox(
-            "Include pictures",
-            value=True,
-        )
+    # Expandable Presenter Credentials
+    with st.expander("Optional Presenter Metadata (Author / Organization)"):
+        meta_c1, meta_c2 = st.columns(2)
+        with meta_c1:
+            author = st.text_input("Author Name", placeholder="e.g. Alex Morgan")
+        with meta_c2:
+            company = st.text_input("Organization / Institution", placeholder="e.g. Stanford University / TechCorp")
 
-        include_charts = st.checkbox(
-            "Include charts",
-            value=True,
-        )
+    # Primary Generation Action Button
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    generate = st.button("✦ Generate Presentation", type="primary", use_container_width=True)
 
-        include_notes = st.checkbox(
-            "Include speaker notes",
-            value=True,
-        )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-        author = st.text_input("Author")
-        company = st.text_input("Company / college")
-
-    with right:
-        st.markdown("### What this generator creates")
-
-        features = [
-            "AI-generated slide structure",
-            "Professional slide layouts",
-            "Pictures on visual slides",
-            "Comparison layouts",
-            "Timeline layouts",
-            "KPI / statistics cards",
-            "Charts",
-            "Tables",
-            "Speaker notes",
-            "Real .pptx export",
-        ]
-
-        for feature in features:
-            st.markdown("✓ " + feature)
-
-        st.info(
-            "For images, this demo uses public Unsplash image URLs. "
-            "For commercial use, connect a licensed image provider."
-        )
-
-    st.divider()
-
-    generate = st.button(
-        "✨ Generate PowerPoint",
-        type="primary",
-        use_container_width=True,
-    )
-
+    # Generation Workflow Execution
     if generate:
         if not topic.strip():
-            st.error("Enter a presentation topic.")
+            st.error("Please enter a presentation topic or idea.")
             return
 
         config = PresentationConfig(
@@ -2289,76 +2923,276 @@ def streamlit_app():
             company=company,
         )
 
-        progress = st.progress(0)
+        status_container = st.container()
+
+        with status_container:
+            st.markdown(
+                """
+                <div class="generation-live-card">
+                    <div style="font-weight: 700; font-size: 16px; margin-bottom: 12px; color: #FFFFFF; display: flex; align-items: center; gap: 8px;">
+                        <span>✦</span> Generating Presentation Studio Deck
+                    </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            prog_bar = st.progress(10)
+            status_text = st.empty()
 
         try:
-            progress.progress(10)
-            st.write("Planning presentation...")
+            status_text.markdown('<div class="status-step-row status-step-active"><span>①</span> Building your story and narrative architecture...</div>', unsafe_allow_html=True)
+            prog_bar.progress(20)
 
             engine = GeminiEngine()
             generated_slides = build_plan(engine, config)
 
-            progress.progress(35)
-            st.write("Improving content...")
+            prog_bar.progress(45)
+            status_text.markdown('<div class="status-step-row status-step-active"><span>②</span> Refining slide copy and executive summaries...</div>', unsafe_allow_html=True)
+            generated_slides = improve_slide_copy(engine, generated_slides)
 
-            generated_slides = improve_slide_copy(
-                engine,
-                generated_slides,
-            )
-
-            progress.progress(50)
-
+            prog_bar.progress(65)
             if include_images:
-                st.write("Preparing pictures...")
-                generated_slides = improve_image_queries(
-                    engine,
-                    generated_slides,
-                )
+                status_text.markdown('<div class="status-step-row status-step-active"><span>③</span> Curating high-resolution visual photography...</div>', unsafe_allow_html=True)
+                generated_slides = improve_image_queries(engine, generated_slides)
 
-            progress.progress(70)
-            st.write("Building PowerPoint...")
+            prog_bar.progress(85)
+            status_text.markdown('<div class="status-step-row status-step-active"><span>④</span> Compiling native PowerPoint (.pptx) deck...</div>', unsafe_allow_html=True)
 
             builder = PPTXBuilder(config)
             output = builder.build(generated_slides)
 
-            progress.progress(100)
+            prog_bar.progress(100)
+            status_text.markdown(f'<div class="status-step-row status-step-done"><span>✓</span> Complete! Successfully built {len(generated_slides)} presentation slides.</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            st.success(
-                f"Created {len(generated_slides)} slides."
-            )
+            # Presentation Ready Action Banner
+            st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+            st.success(f"✦ Presentation Generated: **{len(generated_slides)} slides** styled in **{theme.title()}** theme.")
 
             with open(output, "rb") as file:
+                pptx_data = file.read()
                 st.download_button(
-                    "⬇️ Download PowerPoint",
-                    data=file.read(),
+                    label=f"⬇ Download Presentation ({output.name})",
+                    data=pptx_data,
                     file_name=output.name,
-                    mime=(
-                        "application/vnd.openxmlformats-officedocument."
-                        "presentationml.presentation"
-                    ),
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     use_container_width=True,
                 )
 
-            st.markdown("### Generated slides")
-
-            for index, slide in enumerate(
-                generated_slides,
-                start=1,
-            ):
-                with st.expander(
-                    f"{index:02d} — {slide.title}"
-                ):
-                    st.write(f"**Type:** {slide.type}")
-
+            # Generated Deck Inspector
+            st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+            st.markdown("### Generated Slide System")
+            
+            for index, slide in enumerate(generated_slides, start=1):
+                badge_type = slide.type.upper()
+                with st.expander(f"Slide {index:02d} — {slide.title or 'Untitled Slide'}  [{badge_type}]", expanded=(index == 1)):
                     if slide.subtitle:
-                        st.write(slide.subtitle)
+                        st.markdown(f"**Subtitle:** *{slide.subtitle}*")
+                    
+                    if slide.bullets:
+                        st.markdown("**Key Takeaways:**")
+                        for b in slide.bullets:
+                            st.markdown(f"- {b}")
 
-                    for bullet in slide.bullets:
-                        st.write("• " + bullet)
+                    if slide.visual:
+                        st.markdown(f"**Visual Concept:** `{slide.visual}`")
+
+                    if slide.notes:
+                        st.markdown(f"**Speaker Notes:** *\"{slide.notes}\"*")
 
         except Exception as exc:
-            st.error(str(exc))
+            st.error(f"Generation error: {str(exc)}")
             st.code(traceback.format_exc())
+
+    # Hero Visual / Live Slide Preview Fan Showcase
+    st.markdown(
+        """
+        <div class="preview-showcase">
+            <div class="preview-header">
+                <div>
+                    <span class="preview-tag">Studio Showcase</span>
+                    <h3 style="font-size: 18px; font-weight: 700; color: #FFFFFF; margin: 6px 0 2px 0;">Realistic Slide Engine</h3>
+                </div>
+                <div style="font-size: 12px; color: #94A3B8;">16:9 Widescreen • Vector Typography</div>
+            </div>
+            
+            <div class="slide-deck-grid">
+                <!-- Slide 1: Keynote Title -->
+                <div class="slide-mockup">
+                    <div>
+                        <div class="slide-mockup-badge">Keynote Title</div>
+                        <div class="slide-mockup-title">Autonomous Mobility 2030</div>
+                        <div class="slide-mockup-body">A comprehensive briefing on neural architectures and urban infrastructure.</div>
+                    </div>
+                    <div style="font-size: 9px; color: #64748B; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">
+                        Presented by Alex Morgan • Stanford AI Lab
+                    </div>
+                </div>
+
+                <!-- Slide 2: Narrative & Imagery -->
+                <div class="slide-mockup">
+                    <div>
+                        <div class="slide-mockup-badge">Visual Narrative</div>
+                        <div class="slide-mockup-title">Perception & Sensor Fusion</div>
+                        <div class="slide-mockup-body">• Sub-millisecond LiDAR clustering<br>• Real-time scene segmentation</div>
+                    </div>
+                    <div style="font-size: 9px; color: #38BDF8; font-weight: 600;">
+                        ✦ High-Res Curated Visual
+                    </div>
+                </div>
+
+                <!-- Slide 3: KPI Metrics -->
+                <div class="slide-mockup">
+                    <div>
+                        <div class="slide-mockup-badge">Executive Metrics</div>
+                        <div class="slide-mockup-title">Operational Validation</div>
+                        <div class="slide-mockup-kpi">
+                            <div class="kpi-chip"><div class="kpi-chip-val">99.4%</div><div class="kpi-chip-lbl">Accuracy</div></div>
+                            <div class="kpi-chip"><div class="kpi-chip-val">+142%</div><div class="kpi-chip-lbl">Speed</div></div>
+                            <div class="kpi-chip"><div class="kpi-chip-val">$4.2M</div><div class="kpi-chip-lbl">Efficiency</div></div>
+                        </div>
+                    </div>
+                    <div style="font-size: 9px; color: #64748B;">Validated on 1.2M simulation miles</div>
+                </div>
+
+                <!-- Slide 4: Strategic Comparison -->
+                <div class="slide-mockup">
+                    <div>
+                        <div class="slide-mockup-badge">Strategic Matrix</div>
+                        <div class="slide-mockup-title">Approach Comparison</div>
+                        <div class="slide-mockup-body">
+                            <span style="color:#34D399;">✓ Approach A:</span> Low latency, edge compute<br>
+                            <span style="color:#FBBF24;">⚡ Approach B:</span> High throughput, cloud scale
+                        </div>
+                    </div>
+                    <div style="font-size: 9px; color: #64748B;">Multi-criteria decision framework</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Section 1: "From idea to deck" (AI Workflow Pipeline)
+    st.markdown(
+        """
+        <div id="workflow" class="section-header-wrap">
+            <div class="section-eyebrow">The Generation Pipeline</div>
+            <h2 class="section-title">From idea to deck in seconds</h2>
+            <p class="section-desc">Four synchronized AI phases engineered to produce presentation-ready decks.</p>
+        </div>
+
+        <div class="workflow-grid">
+            <div class="workflow-card">
+                <div class="workflow-num">PHASE 01</div>
+                <div class="workflow-name">Idea Ingestion</div>
+                <p class="workflow-text">Gemini analyzes your topic, target audience, and intent to establish a strategic thesis.</p>
+            </div>
+            <div class="workflow-card">
+                <div class="workflow-num">PHASE 02</div>
+                <div class="workflow-name">Story Arc Architecture</div>
+                <p class="workflow-text">Generates structured slide sequences with varied layouts: timelines, comparisons, and KPIs.</p>
+            </div>
+            <div class="workflow-card">
+                <div class="workflow-num">PHASE 03</div>
+                <div class="workflow-name">Visual & Data Synthesis</div>
+                <p class="workflow-text">Curates photography and renders theme-harmonized Matplotlib charts and tables.</p>
+            </div>
+            <div class="workflow-card">
+                <div class="workflow-num">PHASE 04</div>
+                <div class="workflow-name">PowerPoint Compilation</div>
+                <p class="workflow-text">Exports native .pptx files with vector shapes, exact font hierarchies, and speaker notes.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Section 2: "Built for better slides" (Capabilities Grid)
+    st.markdown(
+        """
+        <div id="features" class="section-header-wrap">
+            <div class="section-eyebrow">Studio Capabilities</div>
+            <h2 class="section-title">Built for better slides</h2>
+            <p class="section-desc">Designed to replace generic templates with bespoke, intelligent presentations.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon-box">🧠</div>
+                <div class="feature-heading">AI Story Structure</div>
+                <p class="feature-body">Engaging narrative progression crafted specifically for executives, clients, or students without fluffy filler text.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-box">📐</div>
+                <div class="feature-heading">Intelligent Layouts</div>
+                <p class="feature-body">Adaptive text fitting, multi-column comparisons, quote highlights, and structured timelines that look hand-crafted.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-box">📊</div>
+                <div class="feature-heading">Data & Charts</div>
+                <p class="feature-body">Automatically synthesizes figures and generates clean, modern charts styled to your deck's color palette.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-box">🖼</div>
+                <div class="feature-heading">Curated Visuals</div>
+                <p class="feature-body">Context-aware image selection matched with professional aspect ratios and aesthetic treatment.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-box">🎙</div>
+                <div class="feature-heading">Executive Speaker Notes</div>
+                <p class="feature-body">Every slide includes tailored talking points and contextual cues embedded directly into the PPTX notes panel.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-box">⚡</div>
+                <div class="feature-heading">Universal PPTX Export</div>
+                <p class="feature-body">100% editable Microsoft PowerPoint files compatible with Keynote, Google Slides, and PowerPoint 365.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Section 3: "Your presentation, ready to present"
+    st.markdown(
+        """
+        <div class="preview-showcase" style="text-align: center; padding: 48px 24px; background: linear-gradient(180deg, rgba(14,18,26,0.9) 0%, rgba(8,10,15,0.95) 100%);">
+            <div class="section-eyebrow">Ready for the Boardroom</div>
+            <h2 style="font-size: 30px; font-weight: 800; color: #FFFFFF; margin: 10px 0 14px 0;">Your presentation, ready to present.</h2>
+            <p style="font-size: 15px; color: #94A3B8; max-width: 580px; margin: 0 auto 28px auto;">
+                Export native widescreen decks with pixel-perfect contrast, legible typography, and zero watermark lock-in.
+            </p>
+            <div style="display: inline-flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <span style="font-size: 12px; color: #CBD5E1; background: rgba(255,255,255,0.06); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">✓ 16:9 Widescreen</span>
+                <span style="font-size: 12px; color: #CBD5E1; background: rgba(255,255,255,0.06); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">✓ 100% Vector Shapes</span>
+                <span style="font-size: 12px; color: #CBD5E1; background: rgba(255,255,255,0.06); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">✓ Full PPTX Editability</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Section 4: Final CTA & Footer
+    st.markdown(
+        """
+        <div style="text-align: center; padding: 56px 20px 24px 20px;">
+            <div class="section-eyebrow">Start Building</div>
+            <h2 style="font-size: 36px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; margin: 10px 0 16px 0;">
+                Your next presentation starts with one idea.
+            </h2>
+            <p style="font-size: 16px; color: #94A3B8; margin-bottom: 28px;">
+                Scroll up to the composer and generate your presentation in seconds.
+            </p>
+        </div>
+
+        <div class="footer-wrap">
+            <div>AI PPT Maker Studio • Powered by Google Gemini & Python-PPTX</div>
+            <div>
+                <a href="https://github.com/rishalck/ai-ppt-maker" target="_blank" style="color: #94A3B8; text-decoration: none; margin-left: 16px;">GitHub Repository</a>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ============================================================================
