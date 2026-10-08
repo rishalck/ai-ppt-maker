@@ -1,0 +1,7 @@
+google-genai
+python-pptx
+Pillow
+requests
+matplotlib
+python-dotenv
+streamlit

@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Streamlit
+.streamlit/
+
+# Generated presentations & media outputs
+generated_ppts/
+*.pptx
